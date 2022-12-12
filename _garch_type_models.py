@@ -30,7 +30,6 @@ logr = pd.Series(logr, index=df.index[1:])
 realized_vol = logr.rolling(window=21).std(ddof=0)
 
 
-
 # ============================= Train-Test Split =================================== #
 df_train = df.loc[:datetime(2020,12,31), :]
 df_test = df.loc[datetime(2021,1,1):, :]
