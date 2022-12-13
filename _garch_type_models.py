@@ -14,6 +14,7 @@ from statsmodels.graphics.gofplots import qqplot, qqline
 from statsmodels.stats.stattools import jarque_bera
 from statsmodels.stats.diagnostic import acorr_ljungbox, acorr_lm
 
+
 # ============================= Load Data =================================== #
 data_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/data/"
 s = datetime(2000,1,1)
@@ -44,7 +45,7 @@ garch11_fitted = garch11.fit()
 
 
 # ============================= EGARCH(1,1,1) =================================== #
-egarch11 = arch_model(logr_train, mean="Constant", vol="EGARCH", p=1, o=1, q=1, dist="gaussian")
+egarch11 = arch_model(logr_train, mean="Constant", vol="EGARCH", p=1, o=1, q=1, dist="gaussian", rescale=False)
 egarch11_fitted = egarch11.fit()
 
 
@@ -58,10 +59,12 @@ egarch11_skewstudent_fitted = egarch11_skewstudent.fit()
 # ============================= GJR-GARCH(1,1) =================================== #
 gjrgarch11 = arch_model(logr_train, mean="Constant", vol="GARCH", p=1, o=1, q=1, dist="gaussian")
 gjrgarch11_fitted = gjrgarch11.fit()
+gjrgarch11_fitted.summary()
+gjrgarch11_fitted.params
 
 gjrgarch11_skewstudent = arch_model(logr_train, mean="Constant", vol="GARCH", p=1, o=1, q=1, dist="skewstudent")
 gjrgarch11_skewstudent_fitted = gjrgarch11_skewstudent.fit()
-
+gjrgarch11_skewstudent_fitted.params[1:5]
 
 # ============================= TGARCH(1,1) =================================== #
 tgarch11 = arch_model(logr_train, mean="Constant", vol="GARCH", p=1, o=1, q=1, dist="gaussian", power=1)
