@@ -28,8 +28,7 @@ class VolPredictor(tc.nn.Module):
             self.lstm = LSTM(input_size=self.Hin, hidden_size=self.Hout, num_layers=self.nl, batch_first=True, device=self.device)
 
         elif self.rnn_type == "rnn":
-            # self.rnn = RNN(input_size=self.Hin, hidden_size=self.Hout, num_layers=self.nl, batch_first=True).to(self.device)
-            pass
+            self.rnn = RNN(input_size=self.Hin, hidden_size=self.Hout, num_layers=self.nl, batch_first=True).to(self.device)
         else:
             ValueError("Wrong rnn_type!")
         # Input: [bs, L, Hin]
@@ -63,7 +62,8 @@ class VolPredictor(tc.nn.Module):
                 h3 = self.drop2(h3)
                 # o[:,i,:] = h3
             out = Sequential(self.fc1, self.sigmoid,
-                             self.fc2, self.relu)(h3)
+                             self.fc2  # , self.relu
+                             )(h3)
 
         elif self.rnn_type == "lstm_whole":
             print("x shape={}, h shape={}, c_shape={}".format(x.shape, hidden[0].shape, hidden[0].shape))
@@ -94,6 +94,7 @@ class VolPredictor(tc.nn.Module):
             h = tc.ones(size=[self.nl, batch_size, self.Hout], device=self.device) * 1e-4
             c = tc.ones(size=[self.nl, batch_size, self.Hout], device=self.device) * 1e-4
             return (h,c)
+
         elif self.rnn_type == "rnn":
             h = tc.ones(size=[self.nl, batch_size, self.Hout], device=self.device) * 1e-4
             return h

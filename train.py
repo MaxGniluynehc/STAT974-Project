@@ -93,12 +93,15 @@ realized_vol = logr_df.BTC.rolling(window=21).std(ddof=0)
 
 # ============================== Define model, optimizer, train-test ds =====================================#
 if __name__ == '__main__':
-    Hin, Hout, rnn_type, device, epochs, lr, batch_size, bws = (logr_df.shape[-1]+4, 2, "lstm", "mps", 10, 1e-3, 128, 21)
-    logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221212/"
+    tc.random.manual_seed(21020403)
+    Hin, Hout, rnn_type, device, epochs, lr, batch_size, bws = (logr_df.shape[-1]+4, 2, "lstm", "mps", 10, 1e-4, 128, 21)
+    # logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221212/"
+    # logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221213_ld/"
+    logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221213/" # update at each batch
 
     volpredictor = VolPredictor(input_size=Hin, hidden_size=Hout, num_layers=3, rnn_type=rnn_type, device=device)
-
-    # volpredictor = tc.load(logs_PATH+"trained_volpredictor_at_epoch={}.pth".format(10))
+    volpredictor.load_state_dict(tc.load(logs_PATH+"trained_volpredictor_at_epoch={}.pth".format(19)).state_dict())
+    # volpredictor = tc.load(logs_PATH+"trained_volpredictor_at_epoch={}.pth".format(9))
 
     opt = Adam(volpredictor.parameters(), lr=lr)
     ds = tc.tensor(logr_df.values, dtype=tc.float32, device=device)
@@ -127,12 +130,12 @@ if __name__ == '__main__':
 
     ds_in = get_ds_in()
 
-
     volpredictor.train()
     loss = MSELoss()
     loss_L1 = L1Loss()
     logs = tc.empty(0)
-    for epoch in tqdm(range(epochs)):
+
+    for epoch in tqdm(range(20, 20+epochs)):
         l = 0
         opt.zero_grad()
         h_init = volpredictor.init_hidden(batch_size=batch_size)
@@ -146,13 +149,19 @@ if __name__ == '__main__':
             # vols.shape
             # rvs.shape
             # vol.shape
-            # l = loss(vol.flatten(), RV[idx+bws-1].repeat(vol.shape).flatten())
-        ones = tc.ones(size=vols.shape, dtype=tc.float32, device=volpredictor.device)
-        l = loss(ones, vols/rvs) + loss(vols, rvs) + loss_L1(ones, vols/rvs) + loss_L1(vols, rvs)
-        # l = loss(vols, rvs)
-        l.backward()
-        opt.step()
-        logs = tc.concat((logs, l.detach().unsqueeze(-1).cpu()))
+            # RV[idx + bws - 1].repeat(vol.shape).shape
+            ones = tc.ones(size=vol.shape, dtype=tc.float32, device=volpredictor.device)
+            l = loss(ones, vol/RV[idx+bws-1].repeat(vol.shape))
+            l.backward()
+            opt.step()
+            logs = tc.concat((logs, l.detach().unsqueeze(-1).cpu()))
+
+        # ones = tc.ones(size=vols.shape, dtype=tc.float32, device=volpredictor.device)
+        # l = loss(ones, vols/rvs) # + loss(vols, rvs) + loss_L1(ones, vols/rvs) + loss_L1(vols, rvs)
+        # # l = loss(vols, rvs)
+        # l.backward()
+        # opt.step()
+        # logs = tc.concat((logs, l.detach().unsqueeze(-1).cpu()))
 
         if (epoch+1)%1 == 0:
             # hidden = volpredictor.init_hidden(batch_size=ds_train.shape[0])
@@ -169,9 +178,7 @@ if __name__ == '__main__':
             #                  volpredictor.flatten)(a.view([ds_in.shape[0], -1, volpredictor.Hout]))
             # vol_pred.shape
             vol_pred = volpredictor.forward(ds_in, hidden_init)
-            vol_pred.shape
-            # volpredictor.Hin
-            # ds_train.shape
+            # vol_pred.shape
             plt.figure()
             plt.plot(logr_df.index[bws-1:ds_in.shape[0]+bws-1], vol_pred.detach().cpu().numpy(), label= "pred_vol")
             plt.plot(realized_vol[bws-1:ds_in.shape[0]+bws-1], label="realized_vol")
