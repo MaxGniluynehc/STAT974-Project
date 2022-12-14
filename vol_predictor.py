@@ -17,7 +17,7 @@ class VolPredictor(tc.nn.Module):
         self.rnn_type = rnn_type
         self.device = device
 
-        if self.rnn_type == "lstm":
+        if self.rnn_type == "lstm" or self.rnn_type == "gew-lstm":
             # self.rnn = LSTM(input_size=self.Hin, hidden_size=self.Hout, num_layers=self.nl, batch_first=True).to(self.device)
             self.lstm1 = LSTMCell(input_size=self.Hin, hidden_size=10, device=self.device)
             self.lstm2 = LSTMCell(input_size=10, hidden_size=4, device=self.device)
@@ -50,7 +50,7 @@ class VolPredictor(tc.nn.Module):
         # self.MAE = MAELoss()
 
     def forward(self, x, hidden):
-        if self.rnn_type == "lstm":
+        if self.rnn_type == "lstm" or self.rnn_type == "gew-lstm":
             # o = tc.empty([x.shape[0], x.shape[1], self.Hout], device=self.device) # [bs, L, Hout]
             (h1, c1), (h2, c2), (h3, c3) = hidden
             for i in range(x.shape[1]):
@@ -63,7 +63,7 @@ class VolPredictor(tc.nn.Module):
                 # o[:,i,:] = h3
             out = Sequential(self.fc1, self.sigmoid,
                              self.fc2  # , self.relu
-                             )(h3)
+                             )(h3) # h3: [bs, 1]
 
         elif self.rnn_type == "lstm_whole":
             print("x shape={}, h shape={}, c_shape={}".format(x.shape, hidden[0].shape, hidden[0].shape))
@@ -89,6 +89,16 @@ class VolPredictor(tc.nn.Module):
             h3 = tc.ones(size=[batch_size, self.Hout], device=self.device) * 1e-4
             c3 = tc.ones(size=[batch_size, self.Hout], device=self.device) * 1e-4
             return [(h1, c1), (h2, c2), (h3, c3)]
+
+        elif self.rnn_type == "gew-lstm":
+            h1 = tc.zeros(size=[batch_size, 10], device=self.device) # * 1e-4
+            c1 = tc.zeros(size=[batch_size, 10], device=self.device) # * 1e-4
+            h2 = tc.zeros(size=[batch_size, 4], device=self.device) # * 1e-4
+            c2 = tc.zeros(size=[batch_size, 4], device=self.device) # * 1e-4
+            h3 = tc.zeros(size=[batch_size, self.Hout], device=self.device) # * 1e-4
+            c3 = tc.zeros(size=[batch_size, self.Hout], device=self.device) # * 1e-4
+            return [(h1, c1), (h2, c2), (h3, c3)]
+
 
         elif self.rnn_type == "lstm_whole":
             h = tc.ones(size=[self.nl, batch_size, self.Hout], device=self.device) * 1e-4

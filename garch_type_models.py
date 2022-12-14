@@ -18,22 +18,26 @@ from statsmodels.stats.stattools import jarque_bera
 from statsmodels.stats.diagnostic import acorr_ljungbox, acorr_lm
 
 # ============================= Load Data =================================== #
-data_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/data/"
-s = datetime(2000,1,1)
-e = datetime.today()
-df_name = "BTC"
-df = pd.read_csv(data_PATH+"{}_from={}_to={}.csv".format(df_name, datetime(2000,1,1).date(), datetime.today().date()))
-df = df.set_index("Date")
-df.index = pd.DatetimeIndex(df.index)
-df.keys()
+# data_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/data/"
+# data_PATH = "/Users/y222chen/Documents/Max/Study/STAT974_Econometrics/Project/project/data/"
+# s = datetime(2000,1,1)
+# e = datetime(2022, 12, 12) #today()
+# df_name = "BTC"
+# df = pd.read_csv(data_PATH+"{}_from={}_to={}.csv".format(df_name, datetime(2000,1,1).date(), e.date()))
+# df = df.set_index("Date")
+# df.index = pd.DatetimeIndex(df.index)
+# df.keys()
 
 
 # ============================= Exploratory Data Analysis =================================== #
+EDA_PATH = "/Users/y222chen/Documents/Max/Study/STAT974_Econometrics/Project/project/figs/EDA/"
+
 # price process
 plt.figure()
 plt.plot(df.Close)
 # plt.xticks(ticks=[0, int(df.shape[0]/2), df.shape[0]-1], labels=df.index[[0, int(df.shape[0]/2), df.shape[0]-1]])
-plt.title("{} price process".format(df_name))
+# plt.title("{} price process".format(df_name))
+plt.savefig(EDA_PATH + "BTC_price_process.png")
 
 # (log) return process
 logr = np.log(df.Close.iloc[1:].values/df.Close.iloc[:-1].values)
@@ -41,14 +45,86 @@ logr = pd.Series(logr, index=df.index[1:])
 plt.figure()
 plt.plot(logr)
 # plt.xticks(ticks=[0, int(logr.shape[0]/2), logr.shape[0]-1], labels=logr.index[[0, int(logr.shape[0]/2), logr.shape[0]-1]])
-plt.title("{} (log) return process".format(df_name))
+# plt.title("{} (log) return process".format(df_name))
+plt.savefig(EDA_PATH + "BTC_return_process.png")
+
+
+BTC = pd.read_csv(data_PATH+"BTC_from={}_to={}.csv".format(s.date(),e.date()), index_col="Date")
+SPX = pd.read_csv(data_PATH+"SPX_from={}_to={}.csv".format(s.date(),e.date()), index_col="Date")
+NSDQ = pd.read_csv(data_PATH+"NSDQ_from={}_to={}.csv".format(s.date(),e.date()), index_col="Date")
+Oil = pd.read_csv(data_PATH+"Oil_from={}_to={}.csv".format(s.date(),e.date()), index_col="Date")
+Gold = pd.read_csv(data_PATH+"Gold_from={}_to={}.csv".format(s.date(),e.date()), index_col="Date")
+TBill = pd.read_csv(data_PATH+"DTB3.csv", index_col="DATE").replace(".", np.nan).astype(np.float64)
+
+dff = pd.DataFrame(BTC.Close.values, index=BTC.index, columns=["BTC"])
+dff["SPX"] = SPX.Close
+dff["NSDQ"] = NSDQ.Close
+dff["Oil"] = Oil.Close
+dff["Gold"] = Gold.Close
+dff["TBill"] = TBill.DTB3
+dff.index = pd.DatetimeIndex(dff.index)
+dff = dff.interpolate(method="time")
+
+logr_dff = pd.DataFrame([], index=dff.index[:-1], columns=dff.keys())
+logr_dff["BTC"] = np.log(dff.BTC.values[1:]/dff.BTC.values[:-1])
+logr_dff["SPX"] = np.log(dff.SPX.values[1:]/dff.SPX.values[:-1])
+logr_dff["NSDQ"] = np.log(dff.NSDQ.values[1:]/dff.NSDQ.values[:-1])
+logr_dff["Oil"] = np.log(dff.Oil.values[1:]/dff.Oil.values[:-1])
+logr_dff["Gold"] = np.log(dff.Gold.values[1:]/dff.Gold.values[:-1])
+logr_dff["TBill"] = dff.TBill/100
+logr_dff = logr_dff.dropna(how="any")
+# any(logr_dff.isna())
+
+
+realized_vol = logr_dff.BTC.rolling(window=21).std(ddof=0)
+
+
+fig, ax = plt.subplots(6,1, sharex=True, figsize = (5,7))
+ax[0].plot(dff.BTC, label="BTC")
+ax[0].legend()
+ax[1].plot(dff.SPX, label="SPX")
+ax[1].legend()
+ax[2].plot(dff.NSDQ, label="NSDQ")
+ax[2].legend()
+ax[3].plot(dff.Oil, label="Oil")
+ax[3].legend()
+ax[4].plot(dff.Gold, label="Gold")
+ax[4].legend()
+ax[5].plot(dff.TBill, label="TBill")
+ax[5].legend()
+plt.savefig(EDA_PATH + "price_process.png")
+
+
+fig, ax = plt.subplots(6,1, sharex=True, figsize = (5,7))
+ax[0].plot(logr_dff.BTC, label="BTC")
+ax[0].legend()
+ax[1].plot(logr_dff.SPX, label="SPX")
+ax[1].legend()
+ax[2].plot(logr_dff.NSDQ, label="NSDQ")
+ax[2].legend()
+ax[3].plot(logr_dff.Oil, label="Oil")
+ax[3].legend()
+ax[4].plot(logr_dff.Gold, label="Gold")
+ax[4].legend()
+ax[5].plot(logr_dff.TBill, label="TBill")
+ax[5].legend()
+plt.savefig(EDA_PATH + "return_process.png")
+
+
+plt.figure()
+plt.plot(realized_vol, label="BTC")
+plt.savefig(EDA_PATH + "BTC_volatility_process.png")
+
 
 # ACFs of returns and squared returns
 plot_acf(logr, auto_ylims=True)
-plt.title("ACF of returns")
+# plt.title("ACF of returns")
+plt.savefig(EDA_PATH + "ACF_of_BTC_returns.png")
+
 
 plot_acf(logr**2, auto_ylims=True)
-plt.title("ACF of squared returns")
+# plt.title("ACF of squared returns")
+plt.savefig(EDA_PATH + "ACF_of_squared_BTC_returns.png")
 
 
 # ============================= Train-Test Split =================================== #
@@ -62,7 +138,7 @@ realized_vol_test = realized_vol.loc[datetime(2021,1,1):]
 
 # ============================== GARCH(1,1) =================================== #
 # garch11 = arch_model(logr_train, mean="Constant", vol="GARCH", p=1, q=1, dist="gaussian")
-# fitted_garch11 = garch11.fit()
+# # garch11_fitted = garch11.fit()
 
 garch11_fitted.plot() # stdres + cond vol
 
@@ -109,73 +185,33 @@ plt.hlines(y=np.sqrt(uncond_var), xmin=cond_vol_train_test.index[0], xmax=cond_v
 plt.legend()
 
 
-# ============================= EGARCH(1,1,1) =================================== #
-egarch11 = arch_model(logr_train, mean="Constant", vol="EGARCH", p=1, o=1, q=1, dist="gaussian")
-fitted_egarch11 = egarch11.fit()
-fitted_egarch11.summary()
-
-
-egarch11_studentst= arch_model(logr_train, mean="Constant", vol="EGARCH", p=1, o=1, q=1, dist="studentst")
-fitted_egarch11_studentst = egarch11_studentst.fit()
-fitted_egarch11_studentst.summary()
-
-egarch11_skewstudent= arch_model(logr_train, mean="Constant", vol="EGARCH", p=1, o=1, q=1, dist="skewstudent")
-fitted_egarch11_skewstudent = egarch11_skewstudent.fit()
-fitted_egarch11_skewstudent.summary()
-
-
-
-# ============================= GJR-GARCH(1,1) =================================== #
-gjrgarch11 = arch_model(logr_train, mean="Constant", vol="GARCH", p=1, o=1, q=1, dist="gaussian")
-gjrgarch11_fitted = gjrgarch11.fit()
-gjrgarch11_fitted.summary()
-
-gjrgarch11_skewstudent = arch_model(logr_train, mean="Constant", vol="GARCH", p=1, o=1, q=1, dist="skewstudent")
-gjrgarch11_skewstudent_fitted = gjrgarch11_skewstudent.fit()
-gjrgarch11_skewstudent_fitted.summary()
-
-
-# ============================= TGARCH(1,1) =================================== #
-tgarch11 = arch_model(logr_train, mean="Constant", vol="GARCH", p=1, o=1, q=1, dist="gaussian", power=1)
-tgarch11_fitted = tgarch11.fit()
-tgarch11_fitted.summary()
-
-tgarch11_skewstudent = arch_model(logr_train, mean="Constant", vol="GARCH", p=1, o=1, q=1, dist="skewstudent", power=1)
-tgarch11_skewstudent_fitted = tgarch11_skewstudent.fit()
-tgarch11_skewstudent_fitted.summary()
-
-
-
-# ============================= FIGARCH(1,1) =================================== #
-egarch11 = arch_model(logr_train, mean="Constant", vol="FIGARCH", p=1, q=1, dist="gaussian")
-
-
-
-# ============================= APARCH(1,1,1) =================================== #
-aparch11 = arch_model(logr_train, mean="Constant", dist="skewstudent")
-aparch_vol_process = arch.univariate.APARCH(p=1, o=1, q=1, delta=2)
-aparch11.volatility = aparch_vol_process
-aparch11.fit()
-
-
-# ============================= EWMA =================================== #
-ewma = arch_model(logr_train, dist="gaussian")
-ewma_vol_process = arch.univariate.EWMAVariance()
-ewma.volatility = ewma_vol_process
-ewma_fitted = ewma.fit()
-ewma_fitted.summary()
-
-ewma_skewstudent = arch_model(logr_train, dist="skewstudent")
-ewma_skewstudent.volatility = ewma_vol_process
-ewma_skewstudent_fitted = ewma_skewstudent.fit()
-ewma_skewstudent_fitted.summary()
-
-
-
 # ============================= Model Comparison =================================== #
-fitted_garch11.aic
-fitted_garch11.bic
-fitted_garch11.rsquared_adj
+garch_fitted_list = [garch11_fitted, egarch11_fitted,
+                     tgarch11_fitted, gjrgarch11_fitted,
+                     aparch11_fitted, ewma_fitted]
+
+garch_fitted_list_names = ["GARCH(1,1)", "EGARCH(1,1,1)",
+                           "TGARCH(1,1,1)", "GJR-GARCH(1,1,1)",
+                           "APARCH(1,1,1)", "EWMA"]
+
+garch_skewstudent_fitted_list = [garch11_skewstudent_fitted, egarch11_skewstudent_fitted,
+                                 tgarch11_skewstudent_fitted, gjrgarch11_skewstudent_fitted,
+                                 aparch11_skewstudent_fitted, ewma_skewstudent_fitted]
+
+
+m = next(iter(garch_skewstudent_fitted_list))
+
+model_valid = pd.DataFrame(index=garch_fitted_list_names, )
+
+
+for m in garch_skewstudent_fitted_list:
+    jarque_bera(m.resid)
+
+    acorr_ljungbox(m.std_resid, lags=[5, 10, 15, 20], boxpierce=True)
+
+    acorr_ljungbox(m.std_resid ** 2, lags=[5, 10, 15, 20], boxpierce=True)
+
+    acorr_lm(m.std_resid)
 
 
 
