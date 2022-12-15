@@ -22,7 +22,10 @@ class VolPredictor(tc.nn.Module):
             self.lstm1 = LSTMCell(input_size=self.Hin, hidden_size=10, device=self.device)
             self.lstm2 = LSTMCell(input_size=10, hidden_size=4, device=self.device)
             self.lstm3 = LSTMCell(input_size=4, hidden_size=self.Hout, device=self.device)
-            pass
+            # self.lstm1 = LSTMCell(input_size=self.Hin, hidden_size=64, device=self.device)
+            # self.lstm2 = LSTMCell(input_size=64, hidden_size=32, device=self.device)
+            # self.lstm3 = LSTMCell(input_size=32, hidden_size=self.Hout, device=self.device)
+
 
         elif self.rnn_type == "lstm_whole":
             self.lstm = LSTM(input_size=self.Hin, hidden_size=self.Hout, num_layers=self.nl, batch_first=True, device=self.device)
@@ -86,6 +89,11 @@ class VolPredictor(tc.nn.Module):
             c1 = tc.ones(size=[batch_size, 10], device=self.device) * 1e-4
             h2 = tc.ones(size=[batch_size, 4], device=self.device) * 1e-4
             c2 = tc.ones(size=[batch_size, 4], device=self.device) * 1e-4
+
+            # h1 = tc.ones(size=[batch_size, 64], device=self.device) * 1e-4
+            # c1 = tc.ones(size=[batch_size, 64], device=self.device) * 1e-4
+            # h2 = tc.ones(size=[batch_size, 32], device=self.device) * 1e-4
+            # c2 = tc.ones(size=[batch_size, 32], device=self.device) * 1e-4
             h3 = tc.ones(size=[batch_size, self.Hout], device=self.device) * 1e-4
             c3 = tc.ones(size=[batch_size, self.Hout], device=self.device) * 1e-4
             return [(h1, c1), (h2, c2), (h3, c3)]
@@ -129,7 +137,7 @@ if __name__ == '__main__':
 
     x, _ = m.rnn(d, hidden)
     out = m.forward(x=d, hidden=hidden)
-    out.shape
+    # out.shape
 
 
 
