@@ -201,17 +201,64 @@ garch_skewstudent_fitted_list = [garch11_skewstudent_fitted, egarch11_skewstuden
 
 m = next(iter(garch_skewstudent_fitted_list))
 
-model_valid = pd.DataFrame(index=garch_fitted_list_names, )
+model_valid = pd.DataFrame(index=["jarque-bera",
+                                  "Ljung-box-res(5)", "Ljung-box-res(10)",
+                                  "Ljung-box-res(15)", "Ljung-box-res(20)",
+                                  "Box-pierce-res(5)", "Boxpierce-res(10)",
+                                  "Box-pierce-res(15)", "Box-pierce-res(20)",
+                                  "Ljung-box-res^2(5)", "Ljung-box-res^2(10)",
+                                  "Ljung-box-res^2(15)", "Ljung-box-res^2(20)",
+                                  "Box-pierce-res^2(5)", "Boxpierce-res^2(10)",
+                                  "Box-pierce-res^2(15)", "Box-pierce-res^2(20)",
+                                  "ArchEffect",
+                                  "MSE", "HMSE",
+                                  "MAE", "HMAE"],
+                           columns=garch_fitted_list_names)
 
 
-for m in garch_skewstudent_fitted_list:
-    jarque_bera(m.resid)
+for idx, m in enumerate(garch_skewstudent_fitted_list):
+    col_idx = []
+    jb = jarque_bera(m.resid)
+    col_idx.append("{}({})".format(round(jb[0],3), round(jb[1],3)))
 
-    acorr_ljungbox(m.std_resid, lags=[5, 10, 15, 20], boxpierce=True)
+    lb1 = acorr_ljungbox(m.std_resid, lags=[5, 10, 15, 20], boxpierce=True)
+    for i in range(4):
+        col_idx.append("{}({})".format(round(lb1.iloc[i, 0],3), round(lb1.iloc[i, 1],3)))
+    for i in range(4):
+        col_idx.append("{}({})".format(round(lb1.iloc[i, 2],3), round(lb1.iloc[i, 3],3)))
 
-    acorr_ljungbox(m.std_resid ** 2, lags=[5, 10, 15, 20], boxpierce=True)
+    lb2 = acorr_ljungbox(m.std_resid ** 2, lags=[5, 10, 15, 20], boxpierce=True)
+    for i in range(4):
+        col_idx.append("{}({})".format(round(lb2.iloc[i, 0], 3), round(lb2.iloc[i, 1], 3)))
+    for i in range(4):
+        col_idx.append("{}({})".format(round(lb2.iloc[i, 2], 3), round(lb2.iloc[i, 3], 3)))
 
-    acorr_lm(m.std_resid)
+    lm = acorr_lm(m.std_resid)
+    col_idx.append("{}({})".format(round(lm[0], 3), round(lm[1], 3)))
+
+    pred = m.forecast(start=m.conditional_volatility.index[-1],
+                      horizon=len(logr_test),  # len(garch11_fitted.conditional_volatility),
+                      method="simulation",
+                      reindex=False)
+    vol_pred = np.sqrt(pred.variance.values).flatten()
+    # vol_pred.shape
+    ones = np.ones(shape=realized_vol_test.shape)
+    mse = np.sum(np.square(vol_pred - realized_vol_test))
+    hmse = np.sum(np.square(ones - vol_pred/realized_vol_test))
+    mae = np.sum(np.abs(vol_pred - realized_vol_test))
+    hmae = np.sum(np.abs(ones - vol_pred/realized_vol_test))
+    col_idx.append(str(round(mse, 3)))
+    col_idx.append(str(round(hmse, 3)))
+    col_idx.append(str(round(mae, 3)))
+    col_idx.append(str(round(hmae, 3)))
+
+    model_valid.iloc[:, idx] = col_idx
+
+print(model_valid.to_latex())
+
+
+
+len(col_idx)
 
 
 
