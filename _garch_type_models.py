@@ -16,8 +16,8 @@ from statsmodels.stats.diagnostic import acorr_ljungbox, acorr_lm
 
 
 # ============================= Load Data =================================== #
-# data_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/data/"
-data_PATH = "/Users/y222chen/Documents/Max/Study/STAT974_Econometrics/Project/project/data/"
+data_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/data/"
+# data_PATH = "/Users/y222chen/Documents/Max/Study/STAT974_Econometrics/Project/project/data/"
 s = datetime(2000,1,1)
 e = datetime(2022, 12, 12) # today()
 # e = datetime.today()

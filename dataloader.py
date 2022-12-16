@@ -33,6 +33,15 @@ class BTCDataset(Dataset):
             # p = garch_params.repeat([self.batch_time_size, 1])
             batch = tc.concat((garch_params, ps), dim=1) # [bws, 10] (bws = 21)
 
+        elif self.garch_type == "T":
+            btc = ps[:, 0] # [21]
+            garch = arch_model(btc.cpu().numpy(), mean="Constant", vol="GARCH", p=1, o=1, q=1, dist="skewstudent", power=1, rescale=False)
+            garch_params = tc.tensor(garch.fit(show_warning=False).params[["omega", "alpha[1]", "gamma[1]", "beta[1]"]])\
+                .to(dtype=tc.float32, device=ps.device).repeat([self.batch_time_size, 1])
+            # p = garch_params.repeat([self.batch_time_size, 1])
+            batch = tc.concat((garch_params, ps), dim=1) # [bws, 10] (bws = 21)
+
+
         elif self.garch_type == "GJR-EXP-EWMA":
             btc = ps[:, 0] # [21]
             GJR = arch_model(btc.cpu().numpy(), mean="Constant", vol="GARCH", p=1, o=1, q=1, dist="skewstudent", rescale=False)

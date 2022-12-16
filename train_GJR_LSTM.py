@@ -16,9 +16,8 @@ from arch import arch_model
 from vol_predictor import VolPredictor
 from dataloader import BTCDataset
 
-# data_PATH="/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/data/"
-
-data_PATH = "/Users/y222chen/Documents/Max/Study/STAT974_Econometrics/Project/project/data/"
+data_PATH="/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/data/"
+# data_PATH = "/Users/y222chen/Documents/Max/Study/STAT974_Econometrics/Project/project/data/"
 s = datetime(2000,1,1)
 e = datetime(2022, 12, 12) #today()
 # garch_params = gjrgarch11_skewstudent_fitted.params
@@ -58,10 +57,10 @@ realized_vol = logr_df.BTC.rolling(window=21).std(ddof=0)
 
 # ============================== Define model, optimizer, train-test ds =====================================#
 if __name__ == '__main__':
-    tc.random.manual_seed(210204)
+    tc.random.manual_seed(2102040333)
 
     Hin, Hout, rnn_type, device, garch_type, epochs, lr, batch_size, bws = \
-   (logr_df.shape[-1]+4, 2, "lstm", "mps", "GJR", 50, 1e-4, 128, 21)
+   (logr_df.shape[-1]+4, 2, "lstm", "mps", "GJR", 30, 1e-4, 128, 21)
 
     if garch_type is None:
         Hin = logr_df.shape[-1]         # 6
@@ -73,7 +72,8 @@ if __name__ == '__main__':
     # logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221212/"
     # logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221213_ld/"
     # logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221213/" # update at each batch
-    logs_PATH = "/Users/y222chen/Documents/Max/Study/STAT974_Econometrics/Project/project/logs20221214_{}/".format(garch_type)
+    # logs_PATH = "/Users/y222chen/Documents/Max/Study/STAT974_Econometrics/Project/project/logs20221214_{}/".format(garch_type)
+    logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221215_GJR/"
 
     volpredictor = VolPredictor(input_size=Hin, hidden_size=Hout, num_layers=3, rnn_type=rnn_type, device=device)
     volpredictor.load_state_dict(tc.load(logs_PATH+"trained_volpredictor_at_epoch={}.pth".format(49)).state_dict())
@@ -120,6 +120,7 @@ if __name__ == '__main__':
     loss_CE = CrossEntropyLoss()
     # logs = tc.empty(0)
     logs = tc.tensor(np.loadtxt(logs_PATH+"logs_to_epoch={}.txt".format(49))).to(dtype=tc.float32, device="cpu")
+
 
     for epoch in tqdm(range(50, 50+epochs)):
         l = 0
@@ -196,6 +197,13 @@ if __name__ == '__main__':
     # plt.figure()
     # plt.plot(losses)
     # plt.ylim([-0.1, 1])
+
+
+
+
+
+
+
 
 
 

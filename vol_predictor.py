@@ -17,7 +17,7 @@ class VolPredictor(tc.nn.Module):
         self.rnn_type = rnn_type
         self.device = device
 
-        if self.rnn_type == "lstm" or self.rnn_type == "gew-lstm":
+        if self.rnn_type == "lstm" or self.rnn_type == "gew-lstm" or self.rnn_type == "t-lstm":
             # self.rnn = LSTM(input_size=self.Hin, hidden_size=self.Hout, num_layers=self.nl, batch_first=True).to(self.device)
             self.lstm1 = LSTMCell(input_size=self.Hin, hidden_size=10, device=self.device)
             self.lstm2 = LSTMCell(input_size=10, hidden_size=4, device=self.device)

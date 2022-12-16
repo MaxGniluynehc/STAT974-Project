@@ -15,6 +15,7 @@ from matplotlib import pyplot as plt
 from statsmodels.graphics.tsaplots import plot_acf, plot_predict
 from statsmodels.graphics.gofplots import qqplot, qqline
 from statsmodels.stats.stattools import jarque_bera
+from statsmodels.tsa.stattools import adfuller
 from statsmodels.stats.diagnostic import acorr_ljungbox, acorr_lm
 
 # ============================= Load Data =================================== #
@@ -30,7 +31,8 @@ from statsmodels.stats.diagnostic import acorr_ljungbox, acorr_lm
 
 
 # ============================= Exploratory Data Analysis =================================== #
-EDA_PATH = "/Users/y222chen/Documents/Max/Study/STAT974_Econometrics/Project/project/figs/EDA/"
+# EDA_PATH = "/Users/y222chen/Documents/Max/Study/STAT974_Econometrics/Project/project/figs/EDA_PATH/"
+EDA_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/figs/EDA/"
 
 # price process
 plt.figure()
@@ -40,8 +42,6 @@ plt.plot(df.Close)
 plt.savefig(EDA_PATH + "BTC_price_process.png")
 
 # (log) return process
-logr = np.log(df.Close.iloc[1:].values/df.Close.iloc[:-1].values)
-logr = pd.Series(logr, index=df.index[1:])
 plt.figure()
 plt.plot(logr)
 # plt.xticks(ticks=[0, int(logr.shape[0]/2), logr.shape[0]-1], labels=logr.index[[0, int(logr.shape[0]/2), logr.shape[0]-1]])
@@ -75,8 +75,8 @@ logr_dff["TBill"] = dff.TBill/100
 logr_dff = logr_dff.dropna(how="any")
 # any(logr_dff.isna())
 
-
 realized_vol = logr_dff.BTC.rolling(window=21).std(ddof=0)
+
 
 
 fig, ax = plt.subplots(6,1, sharex=True, figsize = (5,7))
@@ -127,6 +127,53 @@ plot_acf(logr**2, auto_ylims=True)
 plt.savefig(EDA_PATH + "ACF_of_squared_BTC_returns.png")
 
 
+
+
+eda_summary = pd.DataFrame(columns=["BTC (Price)", "BTC log_r", "SPX log_r",
+                                    "NSDQ log_r", "Oil log_r", "Gold log_r", "Tbill"],
+                           index=["mean", "std", "skewness", "kurtosis", "Jarque-bera", "ADF"])
+
+for i, index in enumerate(eda_summary.index):
+    row_i = np.array([])
+    if index == "mean":
+        row_i = np.append(row_i, np.round(dff.BTC.mean(),3))
+        row_i = np.append(row_i, np.round(logr_dff.mean(axis=0).values,3))
+
+    elif index == "std":
+        row_i = np.append(row_i, np.round(dff.BTC.std(),3))
+        row_i = np.append(row_i, np.round(logr_dff.std(axis=0).values, 3))
+
+    elif index == "skewness":
+        row_i = np.append(row_i, np.round(dff.BTC.skew(), 3))
+        row_i = np.append(row_i, np.round(logr_dff.skew(axis=0).values, 3))
+
+    elif index == "kurtosis":
+        row_i = np.append(row_i, np.round(dff.BTC.kurt(), 3))
+        row_i = np.append(row_i, np.round(logr_dff.kurt(axis=0).values, 3))
+
+    elif index == "Jarque-bera":
+
+        jb1 = jarque_bera(dff.BTC.values)
+        row_i = np.append(row_i, "{}({})".format(round(jb1[0],3), round(jb1[1],3)))
+        jb2 = jarque_bera(logr_dff.values, axis=0)
+        for j in range(len(eda_summary.columns)-1):
+            row_i = np.append(row_i, "{}({})".format(round(jb2[0][j], 3), round(jb2[1][j], 3)))
+
+    elif index == "ADF":
+        adf1 = adfuller(dff.BTC.values)
+        row_i = np.append(row_i, "{}({})".format(round(adf1[0],3), round(adf1[1],3)))
+        for j in range(len(eda_summary.columns)-1):
+            adf = adfuller(logr_dff.iloc[:,j].values)
+            row_i = np.append(row_i, "{}({})".format(round(adf[0], 3), round(adf[1], 3)))
+
+    eda_summary.iloc[i,:] = row_i
+
+eda_summary.T
+
+print(eda_summary.T.to_latex())
+
+
+
 # ============================= Train-Test Split =================================== #
 df_train = df.loc[:datetime(2020,12,31), :]
 df_test = df.loc[datetime(2021,1,1):, :]
@@ -134,6 +181,8 @@ logr_train = logr.loc[:datetime(2020,12,31)]
 logr_test = logr.loc[datetime(2021,1,1):]
 realized_vol_train = realized_vol.loc[:datetime(2020,12,31)]
 realized_vol_test = realized_vol.loc[datetime(2021,1,1):]
+
+
 
 
 # ============================== GARCH(1,1) =================================== #
@@ -186,6 +235,9 @@ plt.legend()
 
 
 # ============================= Model Comparison =================================== #
+
+result_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/figs/result-garch/"
+
 garch_fitted_list = [garch11_fitted, egarch11_fitted,
                      tgarch11_fitted, gjrgarch11_fitted,
                      aparch11_fitted, ewma_fitted]
@@ -199,8 +251,6 @@ garch_skewstudent_fitted_list = [garch11_skewstudent_fitted, egarch11_skewstuden
                                  aparch11_skewstudent_fitted, ewma_skewstudent_fitted]
 
 
-m = next(iter(garch_skewstudent_fitted_list))
-
 model_valid = pd.DataFrame(index=["jarque-bera",
                                   "Ljung-box-res(5)", "Ljung-box-res(10)",
                                   "Ljung-box-res(15)", "Ljung-box-res(20)",
@@ -210,11 +260,10 @@ model_valid = pd.DataFrame(index=["jarque-bera",
                                   "Ljung-box-res^2(15)", "Ljung-box-res^2(20)",
                                   "Box-pierce-res^2(5)", "Boxpierce-res^2(10)",
                                   "Box-pierce-res^2(15)", "Box-pierce-res^2(20)",
-                                  "ArchEffect",
+                                  "ArchEffect-res",
                                   "MSE", "HMSE",
-                                  "MAE", "HMAE"],
+                                  "MAE", "HMAE", "Correlation", "(AIC, BIC)"],
                            columns=garch_fitted_list_names)
-
 
 for idx, m in enumerate(garch_skewstudent_fitted_list):
     col_idx = []
@@ -237,28 +286,49 @@ for idx, m in enumerate(garch_skewstudent_fitted_list):
     col_idx.append("{}({})".format(round(lm[0], 3), round(lm[1], 3)))
 
     pred = m.forecast(start=m.conditional_volatility.index[-1],
-                      horizon=len(logr_test),  # len(garch11_fitted.conditional_volatility),
+                      horizon=len(realized_vol_test),  # len(garch11_fitted.conditional_volatility),
                       method="simulation",
                       reindex=False)
     vol_pred = np.sqrt(pred.variance.values).flatten()
     # vol_pred.shape
     ones = np.ones(shape=realized_vol_test.shape)
-    mse = np.sum(np.square(vol_pred - realized_vol_test))
-    hmse = np.sum(np.square(ones - vol_pred/realized_vol_test))
-    mae = np.sum(np.abs(vol_pred - realized_vol_test))
-    hmae = np.sum(np.abs(ones - vol_pred/realized_vol_test))
-    col_idx.append(str(round(mse, 3)))
-    col_idx.append(str(round(hmse, 3)))
-    col_idx.append(str(round(mae, 3)))
-    col_idx.append(str(round(hmae, 3)))
+    mse = np.mean(np.square(vol_pred - realized_vol_test))
+    hmse = np.mean(np.square(ones - vol_pred/realized_vol_test))
+    mae = np.mean(np.abs(vol_pred - realized_vol_test))
+    hmae = np.mean(np.abs(ones - vol_pred/realized_vol_test))
+    col_idx.append(str(round(mse, 6)))
+    col_idx.append(str(round(hmse, 6)))
+    col_idx.append(str(round(mae, 6)))
+    col_idx.append(str(round(hmae, 6)))
+
+    col_idx.append(round(np.corrcoef(vol_pred, realized_vol_test)[0,1], 4))
+
+    col_idx.append("({}, {})".format(round(m.aic, 2), round(m.bic, 2)))
 
     model_valid.iloc[:, idx] = col_idx
 
-print(model_valid.to_latex())
+model_valid.to_csv(result_PATH + "model_validation.csv")
+
+print(model_valid.iloc[:, 3:].to_latex())
 
 
 
-len(col_idx)
+# Out-of-sample-prediction
+for idx, m in enumerate(garch_skewstudent_fitted_list):
+    plt.figure()
+    plt.plot(realized_vol_test, color="gray", alpha=0.5, label = "realized_vol")
+    pred = m.forecast(start= m.conditional_volatility.index[-1],
+                      horizon= len(realized_vol_test), #len(m.conditional_volatility),
+                      method= "simulation",
+                      reindex=False)
+    plt.plot(realized_vol_test.index, np.sqrt(pred.variance.values[0]), label="pred_cond_vol", color="red")
+    ticks = [round((realized_vol_test.shape[0]-1)*q) for q in [0, 0.25, 0.5, 0.75, 1]]
+    plt.xticks(realized_vol_test.index[ticks],
+               realized_vol_test.index[ticks].date)
+    plt.legend()
+    # plt.title("Conditional Variance (test)")
+    plt.savefig(result_PATH + "{}_out_of_sample_vol_pred.png".format(garch_fitted_list_names[idx]))
+
 
 
 

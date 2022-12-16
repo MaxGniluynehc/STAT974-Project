@@ -2,14 +2,13 @@
 import torch as tc
 from torch.utils.data.dataloader import DataLoader
 from torch.optim import Adam
-from torch.nn import L1Loss, MSELoss
+from torch.nn import L1Loss, MSELoss, CrossEntropyLoss
 import numpy as np
 import pandas as pd
 from datetime import datetime
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 from arch import arch_model
-
 
 # from _garch_type_models import df, df_train, df_test, logr, logr_train, logr_test, realized_vol,\
 # from _garch_type_models import gjrgarch11_skewstudent_fitted
@@ -18,10 +17,9 @@ from vol_predictor import VolPredictor
 from dataloader import BTCDataset
 
 data_PATH="/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/data/"
-
+# data_PATH = "/Users/y222chen/Documents/Max/Study/STAT974_Econometrics/Project/project/data/"
 s = datetime(2000,1,1)
 e = datetime(2022, 12, 12) #today()
-
 # garch_params = gjrgarch11_skewstudent_fitted.params
 
 
@@ -57,85 +55,75 @@ logr_df = logr_df.dropna(how="any")
 realized_vol = logr_df.BTC.rolling(window=21).std(ddof=0)
 
 
-# fig, ax = plt.subplots(6,1, sharex=True, figsize = (5,7))
-# ax[0].plot(df.BTC, label="BTC")
-# ax[0].legend()
-# ax[1].plot(df.SPX, label="SPX")
-# ax[1].legend()
-# ax[2].plot(df.NSDQ, label="NSDQ")
-# ax[2].legend()
-# ax[3].plot(df.Oil, label="Oil")
-# ax[3].legend()
-# ax[4].plot(df.Gold, label="Gold")
-# ax[4].legend()
-# ax[5].plot(df.TBill, label="TBill")
-# ax[5].legend()
-#
-#
-# fig, ax = plt.subplots(6,1, sharex=True, figsize = (5,7))
-# ax[0].plot(logr_df.BTC, label="BTC")
-# ax[0].legend()
-# ax[1].plot(logr_df.SPX, label="SPX")
-# ax[1].legend()
-# ax[2].plot(logr_df.NSDQ, label="NSDQ")
-# ax[2].legend()
-# ax[3].plot(logr_df.Oil, label="Oil")
-# ax[3].legend()
-# ax[4].plot(logr_df.Gold, label="Gold")
-# ax[4].legend()
-# ax[5].plot(logr_df.TBill, label="TBill")
-# ax[5].legend()
-
-
-# plt.figure()
-# plt.plot(realized_vol)
-
-
 # ============================== Define model, optimizer, train-test ds =====================================#
 if __name__ == '__main__':
-    tc.random.manual_seed(21020403)
-    Hin, Hout, rnn_type, device, epochs, lr, batch_size, bws = (logr_df.shape[-1]+4, 2, "lstm", "mps", 10, 1e-4, 128, 21)
+    tc.random.manual_seed(210203040333)
+
+    Hin, Hout, rnn_type, device, garch_type, epochs, lr, batch_size, bws = \
+   (logr_df.shape[-1]+4, 2, "lstm", "mps", "T", 50, 1e-3, 128, 21)
+
+    if garch_type is None:
+        Hin = logr_df.shape[-1]         # 6
+    elif garch_type == "GJR":
+        Hin = logr_df.shape[-1]+4       # 10
+    elif garch_type == "GJR-EXP-EWMA":
+        Hin = logr_df.shape[-1]+4+4+1   # 15
+
     # logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221212/"
     # logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221213_ld/"
-    logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221213/" # update at each batch
+    # logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221213/" # update at each batch
+    # logs_PATH = "/Users/y222chen/Documents/Max/Study/STAT974_Econometrics/Project/project/logs20221214_{}/".format(garch_type)
+    # logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221215_GJR/"
+    logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221215_T/"
 
     volpredictor = VolPredictor(input_size=Hin, hidden_size=Hout, num_layers=3, rnn_type=rnn_type, device=device)
-    volpredictor.load_state_dict(tc.load(logs_PATH+"trained_volpredictor_at_epoch={}.pth".format(19)).state_dict())
+    # volpredictor.load_state_dict(tc.load(logs_PATH+"trained_volpredictor_at_epoch={}.pth".format(79)).state_dict())
     # volpredictor = tc.load(logs_PATH+"trained_volpredictor_at_epoch={}.pth".format(9))
 
     opt = Adam(volpredictor.parameters(), lr=lr)
     ds = tc.tensor(logr_df.values, dtype=tc.float32, device=device)
     ds_train = ds[:int(np.argwhere(logr_df.index == datetime(2021,1,1))), :]
     ds_test = ds[int(np.argwhere(logr_df.index == datetime(2021,1,1))):, :]
-    dataset = BTCDataset(ds_train)
+    dataset = BTCDataset(ds_train, garch_type=garch_type)
     dataloader = DataLoader(dataset, batch_size=batch_size, drop_last=True)
     RV = tc.tensor(realized_vol).to(dtype=tc.float32, device=device)
     # idx, db = next(enumerate(dataloader))
+    # db.shape
+
     # ============================== Train =====================================#
 
-    def get_ds_in():
-        btc = ds_train[:, 0]
-        garch = arch_model(btc.cpu().numpy(), mean="Constant", vol="GARCH",
-                           p=1, o=1, q=1, dist="skewstudent", rescale=False)
-        garch_params = tc.tensor(garch.fit(show_warning=False).params).to(dtype=tc.float32, device=ds_train.device)
-        p = garch_params[1:5].repeat([ds_train.shape[0], 1])
-        # ds_in = tc.concat((p, ds_train), dim=1).unsqueeze(1)  # [1, total len, 10]
+    # def get_ds_in(garch_type = garch_type):
+    #     btc = ds_train[:, 0]
+    #     garch = arch_model(btc.cpu().numpy(), mean="Constant", vol="GARCH",
+    #                        p=1, o=1, q=1, dist="skewstudent", rescale=False)
+    #     garch_params = tc.tensor(garch.fit(show_warning=False).params).to(dtype=tc.float32, device=ds_train.device)
+    #     p = garch_params[1:5].repeat([ds_train.shape[0], 1])
+    #     # ds_in = tc.concat((p, ds_train), dim=1).unsqueeze(1)  # [1, total len, 10]
+    #
+    #     ds_in = tc.empty([ds_train.shape[0]-bws, bws, p.shape[1]+ds_train.shape[1]]).to(dtype=tc.float32, device=ds_train.device)
+    #     k = tc.concat((p, ds_train), dim=1).to(dtype=tc.float32, device=ds_train.device)
+    #     for j in range(k.shape[0] - bws):
+    #         ds_in[j,:,:] = k[j:j+bws,:]
+    #     # ds_in.shape
+    #     return ds_in
+    #
+    # ds_in = get_ds_in()
 
-        ds_in = tc.empty([ds_train.shape[0]-bws, bws, p.shape[1]+ds_train.shape[1]]).to(dtype=tc.float32, device=ds_train.device)
-        k = tc.concat((p, ds_train), dim=1).to(dtype=tc.float32, device=ds_train.device)
-        for j in range(k.shape[0] - bws):
-            ds_in[j,:,:] = k[j:j+bws,:]
-        # ds_in.shape
-        return ds_in
+    # dataloader_full = DataLoader(dataset, batch_size=dataset.__len__(), drop_last=True)
+    # _, ds_in = next(enumerate(dataloader_full))
+    # tc.save(ds_in, logs_PATH+"ds_in.pt")
+    ds_in = tc.load(logs_PATH+"ds_in.pt")
 
-    ds_in = get_ds_in()
 
     volpredictor.train()
-    loss = MSELoss()
+    loss_MSE = MSELoss()
     loss_L1 = L1Loss()
+    loss_CE = CrossEntropyLoss()
     logs = tc.empty(0)
+    # logs = tc.tensor(np.loadtxt(logs_PATH+"logs_to_epoch={}.txt".format(99))).to(dtype=tc.float32, device="cpu")
 
-    for epoch in tqdm(range(20, 20+epochs)):
+
+    for epoch in tqdm(range(0, 0+epochs)):
         l = 0
         opt.zero_grad()
         h_init = volpredictor.init_hidden(batch_size=batch_size)
@@ -145,13 +133,27 @@ if __name__ == '__main__':
             # hidden[0][0].shape
             vol = volpredictor.forward(db, hidden=h_init)
             vols = tc.cat((vols, vol), dim=1)
-            rvs = tc.cat((rvs, RV[idx+bws-1].repeat(vol.shape)), dim=1)
+            # rvs = tc.cat((rvs, RV[idx+bws-1].repeat(vol.shape)), dim=1)
             # vols.shape
             # rvs.shape
             # vol.shape
             # RV[idx + bws - 1].repeat(vol.shape).shape
+
+            rv_dm = RV[idx+bws-1].repeat(vol.shape) - tc.mean(RV[idx+bws-1].repeat(vol.shape))
+            vol_dm = vol - vol.mean()
+            corr = tc.multiply(vol_dm, rv_dm).sum()/(tc.sqrt(max(tc.sum(tc.pow(vol_dm,2)), tc.tensor([1e-6], device=volpredictor.device)))
+                                                     * tc.sqrt(max(tc.sum(tc.pow(rv_dm,2)), tc.tensor([1e-6], device=volpredictor.device))))
+
             ones = tc.ones(size=vol.shape, dtype=tc.float32, device=volpredictor.device)
-            l = loss(ones, vol/RV[idx+bws-1].repeat(vol.shape))
+            l = loss_MSE(ones, vol/RV[idx+bws-1].repeat(vol.shape)) # \
+                # + loss_L1(vol, RV[idx+bws-1].repeat(vol.shape)) \
+                # + loss_MSE(vol, RV[idx+bws-1].repeat(vol.shape)) \
+                # + loss_L1(ones, vol/RV[idx+bws-1].repeat(vol.shape)) \
+                # - corr.item()
+            # + loss_L1(vol, RV[idx+bws-1].repeat(vol.shape))
+            # + loss_CE(vol, RV[idx+bws-1].repeat(vol.shape))
+            # - corr.item()
+
             l.backward()
             opt.step()
             logs = tc.concat((logs, l.detach().unsqueeze(-1).cpu()))
@@ -190,6 +192,17 @@ if __name__ == '__main__':
         tqdm(epochs).set_description('MSE Loss: %.8f' % (l.item()))
 
     np.savetxt(logs_PATH+"logs_to_epoch={}.txt".format(int(epoch)), logs.detach().numpy())
+
+
+    # losses = np.loadtxt(logs_PATH+"logs_to_epoch={}.txt".format(int(49)))
+    # plt.figure()
+    # plt.plot(losses)
+    # plt.ylim([-0.1, 1])
+
+
+
+
+
 
 
 
