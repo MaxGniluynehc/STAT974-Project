@@ -169,11 +169,7 @@ for idx, m in enumerate([0]):
 lstm_valid1.to_csv(figs_PATH + "{}-model-validation.csv".format("tgarch-lstm"))
 
 lstm_valid["TGARCH-LSTM"] = lstm_valid1["TGARCH-LSTM"]
-
-
 print(lstm_valid.to_latex())
-
-
 
 # Out-of-sample-prediction
 plt.figure()
@@ -187,12 +183,9 @@ plt.legend()
 # plt.title("Conditional Variance (test)")
 plt.savefig(figs_PATH + "{}_out_of_sample_vol_pred.png".format("TGARCH-LSTM"))
 
-# np.sum(np.square(vol_pred_test.detach().cpu().numpy().flatten() - realized_vol[-ds_in_test.shape[0]:].values))
-
 
 
 # Convergence of loss functions
-
 ll = np.loadtxt(logs_PATH+"logs_to_epoch=49.txt")
 plt.figure()
 plt.plot(np.arange(ll.shape[0])/round(ds_in_train.shape[0]/batch_size), ll, color="black")
