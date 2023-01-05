@@ -64,7 +64,7 @@ if __name__ == '__main__':
     tc.random.manual_seed(210203040333)
 
     Hin, Hout, rnn_type, device, garch_type, epochs, lr, batch_size, bws = \
-   (logr_df.shape[-1]+4, 2, "lstm", "cuda", "T", 50, 1e-3, 128, 21)  # changed to cuda for linux server
+   (logr_df.shape[-1]+4, 2, "lstm", "cpu", "T", 50, 1e-3, 128, 21)  # changed to cuda for linux server
 
     if garch_type is None:
         Hin = logr_df.shape[-1]         # 6
