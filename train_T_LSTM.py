@@ -16,8 +16,11 @@ from arch import arch_model
 from vol_predictor import VolPredictor
 from dataloader import BTCDataset
 
-data_PATH="/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/data/"
+# data_PATH="/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/data/"
 # data_PATH = "/Users/y222chen/Documents/Max/Study/STAT974_Econometrics/Project/project/data/"
+
+data_PATH="/Volumes/y222chen/STAT974-Project/data/" # working dictory on linux
+
 s = datetime(2000,1,1)
 e = datetime(2022, 12, 12) #today()
 # garch_params = gjrgarch11_skewstudent_fitted.params
