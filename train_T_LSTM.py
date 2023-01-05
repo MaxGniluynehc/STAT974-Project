@@ -57,6 +57,8 @@ logr_df = logr_df.dropna(how="any")
 
 realized_vol = logr_df.BTC.rolling(window=21).std(ddof=0)
 
+print(realized_vol.shape)
+
 
 # ============================== Define model, optimizer, train-test ds =====================================#
 if __name__ == '__main__':
