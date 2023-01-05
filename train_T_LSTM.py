@@ -115,9 +115,9 @@ if __name__ == '__main__':
     #
     # ds_in = get_ds_in()
 
-    # dataloader_full = DataLoader(dataset, batch_size=dataset.__len__(), drop_last=True)
-    # _, ds_in = next(enumerate(dataloader_full))
-    # tc.save(ds_in, logs_PATH+"ds_in.pt")
+    dataloader_full = DataLoader(dataset, batch_size=dataset.__len__(), drop_last=True)
+    _, ds_in = next(enumerate(dataloader_full))
+    tc.save(ds_in, logs_PATH+"ds_in.pt")
     ds_in = tc.load(logs_PATH+"ds_in.pt")
 
 
