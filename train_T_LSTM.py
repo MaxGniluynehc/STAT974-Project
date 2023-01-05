@@ -57,7 +57,6 @@ logr_df = logr_df.dropna(how="any")
 
 realized_vol = logr_df.BTC.rolling(window=21).std(ddof=0)
 
-print(realized_vol.shape)
 
 
 # ============================== Define model, optimizer, train-test ds =====================================#
@@ -65,7 +64,7 @@ if __name__ == '__main__':
     tc.random.manual_seed(210203040333)
 
     Hin, Hout, rnn_type, device, garch_type, epochs, lr, batch_size, bws = \
-   (logr_df.shape[-1]+4, 2, "lstm", "mps", "T", 50, 1e-3, 128, 21)
+   (logr_df.shape[-1]+4, 2, "lstm", "cuda", "T", 50, 1e-3, 128, 21)  # changed to cuda for linux server
 
     if garch_type is None:
         Hin = logr_df.shape[-1]         # 6
@@ -79,7 +78,9 @@ if __name__ == '__main__':
     # logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221213/" # update at each batch
     # logs_PATH = "/Users/y222chen/Documents/Max/Study/STAT974_Econometrics/Project/project/logs20221214_{}/".format(garch_type)
     # logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221215_GJR/"
-    logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221215_T/"
+    # logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221215_T/"
+    logs_PATH = "~/STAT974-Project/logs20230105_T/"
+
 
     volpredictor = VolPredictor(input_size=Hin, hidden_size=Hout, num_layers=3, rnn_type=rnn_type, device=device)
     # volpredictor.load_state_dict(tc.load(logs_PATH+"trained_volpredictor_at_epoch={}.pth".format(79)).state_dict())
