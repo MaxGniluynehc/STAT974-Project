@@ -88,6 +88,7 @@ if __name__ == '__main__':
 
     opt = Adam(volpredictor.parameters(), lr=lr)
     ds = tc.tensor(logr_df.values, dtype=tc.float32, device=device)
+    tc.save(ds, logs_PATH + "ds.pt")
     ds_train = ds[:int(np.argwhere(logr_df.index == datetime(2021,1,1))), :]
     ds_test = ds[int(np.argwhere(logr_df.index == datetime(2021,1,1))):, :]
     dataset = BTCDataset(ds_train, garch_type=garch_type)
