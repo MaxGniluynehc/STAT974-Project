@@ -79,7 +79,7 @@ if __name__ == '__main__':
     # logs_PATH = "/Users/y222chen/Documents/Max/Study/STAT974_Econometrics/Project/project/logs20221214_{}/".format(garch_type)
     # logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221215_GJR/"
     # logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221215_T/"
-    logs_PATH = "/u/y222chen/STAT974-Project/logs20230105_T"
+    logs_PATH = "/u/y222chen/STAT974-Project/logs20230105_T/"
 
 
     volpredictor = VolPredictor(input_size=Hin, hidden_size=Hout, num_layers=3, rnn_type=rnn_type, device=device)
@@ -89,6 +89,7 @@ if __name__ == '__main__':
     opt = Adam(volpredictor.parameters(), lr=lr)
     ds = tc.tensor(logr_df.values, dtype=tc.float32, device=device)
     tc.save(ds, logs_PATH + "ds.pt")
+
     ds_train = ds[:int(np.argwhere(logr_df.index == datetime(2021,1,1))), :]
     ds_test = ds[int(np.argwhere(logr_df.index == datetime(2021,1,1))):, :]
     dataset = BTCDataset(ds_train, garch_type=garch_type)
