@@ -79,7 +79,7 @@ if __name__ == '__main__':
     # logs_PATH = "/Users/y222chen/Documents/Max/Study/STAT974_Econometrics/Project/project/logs20221214_{}/".format(garch_type)
     # logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221215_GJR/"
     # logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20221215_T/"
-    logs_PATH = "~/STAT974-Project/logs20221212/"
+    logs_PATH = "/Users/maxchen/Documents/Study/STA/STAT974_Econometrics/Project/project/logs20230105_T/"
 
 
     volpredictor = VolPredictor(input_size=Hin, hidden_size=Hout, num_layers=3, rnn_type=rnn_type, device=device)
